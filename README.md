@@ -1,14 +1,104 @@
-# 🎓 Multithreaded Virtual Memory Simulator with Concurrency
+# 🎓 Virtual Memory Simulator Suite - Complete Educational Tool
 
-## Final Year Project - Interactive Educational Tool
+## Final Year Project - Demand Paging, Multithreading & Concurrency
 
 ### 📖 Project Overview
 
-This project is an **advanced educational simulator** for demonstrating multithreading, concurrency, synchronization, and virtual memory concepts (demand paging and page replacement algorithms). It provides an interactive Java Swing-based GUI where students can configure multiple threads, apply different scheduling algorithms, enable synchronization mechanisms, and observe real-time execution with visual feedback.
+This project is a **comprehensive educational simulator suite** featuring **TWO powerful applications** for demonstrating virtual memory concepts, multithreading, concurrency, synchronization, and page replacement algorithms. It provides interactive Java Swing-based GUIs where students can learn both single-threaded and multithreaded demand paging concepts through visual simulation.
+
+### 🎯 Dual Simulation Tools
+
+This project includes TWO complete simulators:
+
+#### 1️⃣ **DemandPagingGUI** - Single-Thread Demand Paging Simulator
+The original, foundational simulator focusing on core demand paging concepts with step-by-step visualization of page replacement algorithms.
+
+#### 2️⃣ **MultiThreadGUI** - Multithreaded Concurrency Simulator
+Advanced simulator demonstrating concurrent execution, thread scheduling, synchronization mechanisms, and deadlock detection with multiple competing threads.
 
 ---
 
-## ✨ Key Features
+## ✨ Application 1: DemandPagingGUI - Single-Thread Simulator
+
+### 📘 Overview
+The original demand paging simulator provides an intuitive interface for learning fundamental page replacement algorithms. Perfect for understanding basic virtual memory concepts before moving to multithreading.
+
+### 🔹 Core Features
+
+#### Page Replacement Algorithms
+- **FIFO** (First-In-First-Out): Pages are evicted in order of arrival
+- **LRU** (Least Recently Used): Evicts the page not used for the longest time
+- **MRU** (Most Recently Used): Evicts the most recently used page
+- **OPT** (Optimal): Evicts the page that won't be used for the longest time (theoretical best)
+
+#### Interactive Simulation
+- **Step-by-Step Mode**: Execute one page reference at a time with "Next Step" button
+- **Auto-Play Mode**: Continuous execution with "Play/Pause" control
+- **Visual Frame Display**: See memory frames update in real-time
+- **Color Coding**: 
+  - 🟢 Green for page hits (page found in memory)
+  - 🔴 Red for page faults (page not in memory, replacement needed)
+
+#### Statistics & Analysis
+- **Real-time Metrics**: Hits, faults, and hit ratio calculated during execution
+- **Step Counter**: Track progress through reference string
+- **Eviction Notification**: See which page is being replaced
+- **Final Summary**: Complete statistics popup when simulation completes
+
+#### Comparison Tool
+- **Bar Chart Visualization**: Compare all 4 algorithms on the same reference string
+- **Sorted Display**: Algorithms ranked by page fault count (best to worst)
+- **Color-coded Bars**: Easy visual comparison of algorithm performance
+
+#### User Interface
+- **Algorithm Selector**: Dropdown to choose FIFO, LRU, MRU, or OPT
+- **Frame Count Input**: Configure number of memory frames (1-10)
+- **Reference String Input**: Enter custom page reference sequence (space-separated)
+- **Reset Button**: Clear simulation and start fresh
+- **Default Example**: Pre-filled with: "7 0 1 2 0 3 0 4 2 3 0 3 2" (3 frames)
+
+### 📊 Educational Value (DemandPagingGUI)
+Students learn:
+- How page faults occur when pages are not in memory
+- How different algorithms make replacement decisions
+- Why some algorithms perform better than others
+- The concept of locality of reference
+- Trade-offs between algorithm complexity and performance
+
+### 🎯 How to Use DemandPagingGUI
+
+1. **Launch the Simulator**:
+   ```bash
+   java DemandPagingGUI
+   ```
+
+2. **Configure Simulation**:
+   - Set number of frames (default: 3)
+   - Enter reference string (e.g., "7 0 1 2 0 3 0 4 2 3 0 3 2")
+   - Select algorithm (FIFO, LRU, MRU, or OPT)
+
+3. **Run Simulation**:
+   - Click "Start Simulation" to initialize
+   - Click "Next Step" to step through one page at a time
+   - OR click "Play" for automatic continuous execution
+   - Watch frames update with color coding for hits/faults
+
+4. **Analyze Results**:
+   - View real-time hit ratio and fault count
+   - See which page is evicted on each fault
+   - Click "Show Bar Chart" to compare all algorithms
+
+5. **Experiment**:
+   - Try different reference strings
+   - Change frame count to see impact
+   - Compare algorithm performance
+
+---
+
+## ✨ Application 2: MultiThreadGUI - Multithreaded Simulator
+
+### 📘 Overview
+Advanced simulator demonstrating concurrent execution with multiple threads competing for shared memory. Includes thread scheduling, synchronization mechanisms, and deadlock detection.
 
 ### 🔹 Multithreading & Concurrency
 - **3-8 Concurrent Threads**: Each thread has its own reference string and priority
@@ -92,48 +182,197 @@ Pre-configured scenarios for learning:
 
 ```
 /app/
+│
+├── ═══ APPLICATION 1: Single-Thread Simulator ═══
+├── DemandPagingGUI.java         # Main GUI for single-thread simulation
+├── DemandPaging.java            # Core logic for page replacement algorithms
+├── BarChartFrame.java           # Algorithm comparison chart
+│
+├── ═══ APPLICATION 2: Multithreaded Simulator ═══
 ├── MultiThreadGUI.java          # Main GUI with tabbed interface
-├── MultiThreadSimulator.java    # Core simulation engine
-├── ProcessThread.java           # Thread representation
+├── MultiThreadSimulator.java    # Core multithreaded simulation engine
+├── ProcessThread.java           # Thread representation with states
 ├── ThreadScheduler.java         # Scheduling algorithms (FCFS, RR, Priority)
 ├── LockResource.java            # Mutex and Semaphore implementation
 ├── DeadlockDetector.java        # Deadlock detection algorithm
-├── DemandPaging.java            # Original single-thread simulation logic
-├── DemandPagingGUI.java         # Original single-thread GUI (kept for reference)
-├── BarChartFrame.java           # Algorithm comparison chart
-└── README.md                    # This file
+│
+└── README.md                    # This comprehensive documentation
 ```
+
+### 📊 Educational Value (MultiThreadGUI)
+Students learn:
+- Multithreading and concurrent execution
+- Thread states and lifecycle transitions
+- Context switching overhead and impact
+- Scheduling algorithm comparison and trade-offs
+- Synchronization primitives (Mutex vs Semaphore)
+- Race conditions and their consequences
+- Deadlock conditions, detection, and prevention
+- Priority inversion and starvation scenarios
+- Thrashing in memory-constrained systems
+- Performance metrics and system analysis
 
 ---
 
 ## 🚀 How to Run
 
-### Prerequisites
-- Java Development Kit (JDK) 11 or higher
-- Terminal/Command Prompt
+### Quick Start (Both Applications)
 
-### Compilation
+**Method 1 - Quick Run Script:**
+```bash
+cd /app
+./run.sh
+```
+This will compile all files and launch the MultiThreadGUI by default.
+
+**Method 2 - Manual Compilation:**
 ```bash
 cd /app
 javac *.java
 ```
 
-### Execution
+### Running Individual Applications
+
+#### Launch Single-Thread Simulator (DemandPagingGUI):
+```bash
+java DemandPagingGUI
+```
+Perfect for:
+- Learning basic demand paging concepts
+- Understanding page replacement algorithms
+- Step-by-step algorithm observation
+- Quick algorithm comparison
+
+#### Launch Multithreaded Simulator (MultiThreadGUI):
 ```bash
 java MultiThreadGUI
 ```
+Perfect for:
+- Advanced multithreading concepts
+- Thread scheduling algorithms
+- Synchronization and deadlock
+- Complex concurrency scenarios
 
-### Quick Start Script
-A convenience script is provided:
-```bash
-./run.sh
+### Prerequisites
+- Java Development Kit (JDK) 11 or higher
+- Terminal/Command Prompt
+- Display capability for GUI (X11 for Linux, native for Windows/Mac)
+
+---
+
+## 📚 Comprehensive Usage Guide
+
+### 🎓 Learning Path Recommendation
+
+**For Beginners:**
+1. Start with **DemandPagingGUI** to understand:
+   - What is a page fault
+   - How page replacement works
+   - Differences between FIFO, LRU, MRU, OPT
+   - Impact of frame count on performance
+
+2. Then move to **MultiThreadGUI** to explore:
+   - How multiple processes share memory
+   - Thread scheduling effects
+   - Need for synchronization
+   - Deadlock scenarios
+
+### 📖 DemandPagingGUI - Detailed Usage
+
+#### Window Layout:
+```
+┌─────────────────────────────────────────────────┐
+│         DEMAND PAGING SIMULATION                │
+├─────────────────────────────────────────────────┤
+│  Settings Panel:                                │
+│  Number of Frames: [3]                          │
+│  Reference String: [7 0 1 2 0 3 0 4 2 3 0 3 2]  │
+│  Algorithm: [FIFO ▼]                            │
+│  [Start] [Next Step] [Play] [Chart] [Reset]    │
+├─────────────────────────────────────────────────┤
+│  Memory Frames:                                 │
+│  ┌───┐ ┌───┐ ┌───┐                              │
+│  │ 7 │ │ 0 │ │ 1 │                              │
+│  └───┘ └───┘ └───┘                              │
+│  Evicted Page: 4                                │
+├─────────────────────────────────────────────────┤
+│  Status: ✗ FAULT → Page 2 not in memory        │
+│  Step: 8 / 13                                   │
+│  Hits: 3 | Faults: 5 | Hit Ratio: 37.50%       │
+└─────────────────────────────────────────────────┘
+```
+
+#### Step-by-Step Instructions:
+
+1. **Initial Setup**:
+   - Enter number of frames (e.g., 3, 4, 5)
+   - Enter reference string (space-separated page numbers)
+   - Select algorithm from dropdown
+
+2. **Start Simulation**:
+   - Click "Start Simulation" button
+   - Frames initialize to empty state
+
+3. **Execute Steps**:
+   - **Manual Mode**: Click "Next Step" for each page reference
+     - Observe if it's a HIT (green) or FAULT (red)
+     - See which page gets evicted (if any)
+   - **Auto Mode**: Click "Play" for continuous execution
+     - Use "Pause" to stop at any point
+     - Adjustable speed (1 second per step)
+
+4. **Interpret Results**:
+   - 🟢 **Green frames**: Page just accessed (HIT)
+   - 🔴 **Red frames**: New page loaded (FAULT)
+   - **Evicted Page label**: Shows which page was replaced
+   - **Status line**: Explains what happened this step
+
+5. **Compare Algorithms**:
+   - After completion, click "Show Bar Chart"
+   - View all 4 algorithms ranked by performance
+   - Lower bars = fewer faults = better performance
+
+6. **Reset & Experiment**:
+   - Click "Reset" to clear
+   - Try different reference strings to see patterns
+   - Experiment with frame counts
+
+#### Example Scenarios (DemandPagingGUI):
+
+**Scenario 1: FIFO Belady's Anomaly**
+```
+Frames: 3
+Reference: 1 2 3 4 1 2 5 1 2 3 4 5
+Algorithm: FIFO
+Result: 9 page faults
+
+Frames: 4
+Reference: 1 2 3 4 1 2 5 1 2 3 4 5
+Algorithm: FIFO
+Result: 10 page faults (MORE faults with MORE frames!)
+```
+
+**Scenario 2: LRU Performance**
+```
+Frames: 3
+Reference: 7 0 1 2 0 3 0 4 2 3 0 3 2
+Algorithm: LRU
+Result: Good performance with temporal locality
+```
+
+**Scenario 3: OPT (Theoretical Best)**
+```
+Frames: 3
+Reference: 1 2 3 4 1 2 5 1 2 3 4 5
+Algorithm: OPT
+Result: Minimum possible page faults (reference for comparison)
 ```
 
 ---
 
-## 📚 Usage Guide
+### 📖 MultiThreadGUI - Detailed Usage
 
-### Tab 1: Configuration ⚙️
+#### Tab 1: Configuration ⚙️
 
 1. **Set Number of Threads** (3-8): Use the spinner to select how many threads to simulate
 2. **Choose Scheduling Algorithm**:
