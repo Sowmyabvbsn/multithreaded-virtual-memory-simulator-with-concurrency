@@ -89,7 +89,7 @@ export default function MemorySimulator() {
     setFrames(Array(ramSize).fill({ page: -1, status: "idle" }));
 
     try {
-      const response = await fetch("http://localhost:8079/simulate", {
+      const response = await fetch("http://localhost:8080/simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
