@@ -375,7 +375,7 @@ Algorithm: LRU
 
 ## 👨‍💻 Author
 
-Final Year Project - Computer Science
+Final Year Project - Information Technology
 
 ## 📝 License
 
