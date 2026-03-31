@@ -1,3 +1,5 @@
 *.class
 *.txt
 .env
+
+ai_config.properties
