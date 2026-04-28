@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multithreaded Virtual Memory Simulator - Final Year Project</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ── Slide container ── */
+  .slideshow {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    padding: 40px 60px;
+    overflow: hidden;
+    animation: fadeIn 0.4s ease;
+  }
+  .slide.active { display: flex; flex-direction: column; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(30px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── Navigation ── */
+  .nav {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+    background: rgba(255,255,255,0.08);
+    padding: 10px 24px;
+    border-radius: 40px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .nav button {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: #fff;
+    padding: 8px 22px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .nav button:hover { background: rgba(255,255,255,0.28); }
+  .nav button:disabled { opacity: 0.35; cursor: not-allowed; }
+  #slide-counter {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    min-width: 70px;
+    text-align: center;
+  }
+
+  /* ── Keyboard hint ── */
+  .kbd-hint {
+    position: fixed;
+    bottom: 80px;
+    right: 24px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* ── Progress bar ── */
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: #3498db;
+    transition: width 0.3s ease;
+    z-index: 200;
+  }
+
+  /* ── Slide number badge ── */
+  .slide-badge {
+    position: fixed;
+    top: 14px;
+    right: 20px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    z-index: 100;
+  }
+
+  /* ════════════════════════════
+     SLIDE THEMES
+  ════════════════════════════ */
+
+  /* Slide 1 – Title */
+  .slide-title {
+    background: linear-gradient(135deg, #0f0c29 0%, #1a1a4e 50%, #0f0c29 100%);
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 0;
+  }
+  .slide-title .inst-logo {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e90ff, #00c6ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 10px;
+    box-shadow: 0 0 30px rgba(30,144,255,0.4);
+  }
+  .slide-title .dept {
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #7ab4f5;
+    margin-bottom: 4px;
+  }
+  .slide-title .univ {
+    font-size: 14px;
+    font-weight: 700;
+    color: #a0c8ff;
+    margin-bottom: 20px;
+  }
+  .slide-title .divider {
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #3498db, transparent);
+    margin: 12px auto;
+  }
+  .slide-title h1 {
+    font-size: 30px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.25;
+    max-width: 820px;
+    text-shadow: 0 2px 20px rgba(52,152,219,0.5);
+    margin-bottom: 8px;
+  }
+  .slide-title .subtitle {
+    font-size: 14px;
+    color: #90b8e0;
+    margin-bottom: 22px;
+  }
+  .slide-title .team-grid {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .slide-title .member {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(52,152,219,0.3);
+    border-radius: 10px;
+    padding: 10px 18px;
+    text-align: left;
+  }
+  .slide-title .member .name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #e0f0ff;
+  }
+  .slide-title .member .regd {
+    font-size: 11px;
+    color: #7ab4f5;
+    margin-top: 2px;
+  }
+  .slide-title .guide-row {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    font-size: 12px;
+    color: #90b8e0;
+    margin-top: 6px;
+  }
+  .slide-title .guide-row span { font-weight: 700; color: #a8d4ff; }
+  .slide-title .year {
+    font-size: 11px;
+    color: #5a8ab0;
+    margin-top: 12px;
+  }
+
+  /* Content slides */
+  .slide-content {
+    background: linear-gradient(160deg, #0d1b2a 0%, #1b2a3b 100%);
+  }
+
+  /* Dark alt slides */
+  .slide-alt {
+    background: linear-gradient(160deg, #0a1628 0%, #162032 100%);
+  }
+
+  /* ── Slide header ── */
+  .slide-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(52,152,219,0.25);
+  }
+  .slide-header .icon {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1e90ff, #0066cc);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .slide-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #d0e8ff;
+  }
+  .slide-header .tag {
+    margin-left: auto;
+    font-size: 11px;
+    background: rgba(52,152,219,0.2);
+    border: 1px solid rgba(52,152,219,0.4);
+    color: #7ab4f5;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* ── Content layout helpers ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; flex: 1; }
+  .content-flex { display: flex; flex-direction: column; flex: 1; gap: 16px; }
+
+  /* ── Cards ── */
+  .card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .card.blue  { border-left: 3px solid #3498db; }
+  .card.green { border-left: 3px solid #2ecc71; }
+  .card.amber { border-left: 3px solid #f39c12; }
+  .card.red   { border-left: 3px solid #e74c3c; }
+  .card.teal  { border-left: 3px solid #1abc9c; }
+  .card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #c8dff5;
+  }
+  .card p, .card li {
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #9ab8d8;
+  }
+  .card ul { padding-left: 16px; }
+  .card li { margin-bottom: 4px; }
+
+  /* ── Bullet list ── */
+  .bullets { list-style: none; padding: 0; }
+  .bullets li {
+    font-size: 13px;
+    line-height: 1.65;
+    color: #9ab8d8;
+    padding: 6px 0 6px 22px;
+    position: relative;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .bullets li::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 14px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #3498db;
+  }
+  .bullets li strong { color: #d0e8ff; }
+
+  /* ── Algo pills ── */
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .pill {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+  }
+  .pill-blue  { background: rgba(52,152,219,0.2);  color: #7ec8f5; border: 1px solid rgba(52,152,219,0.4); }
+  .pill-green { background: rgba(46,204,113,0.15); color: #7edba8; border: 1px solid rgba(46,204,113,0.3); }
+  .pill-amber { background: rgba(243,156,18,0.15); color: #f5c96e; border: 1px solid rgba(243,156,18,0.3); }
+  .pill-red   { background: rgba(231,76,60,0.15);  color: #f5927a; border: 1px solid rgba(231,76,60,0.3); }
+  .pill-teal  { background: rgba(26,188,156,0.15); color: #7ee8d5; border: 1px solid rgba(26,188,156,0.3); }
+
+  /* ── Section title inside card ── */
+  .section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #4a88b8;
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+
+  /* ── Diagram-style boxes ── */
+  .diagram {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(52,152,219,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: #7ab4f5;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* ── Stat boxes ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .stat-box {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 18px 12px;
+    text-align: center;
+  }
+  .stat-box .num {
+    font-size: 28px;
+    font-weight: 800;
+    color: #3498db;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-box .lbl { font-size: 11px; color: #7090a8; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th {
+    background: rgba(52,152,219,0.2);
+    color: #a0c8e8;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+  td { padding: 9px 12px; color: #8aacca; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  tr:hover td { background: rgba(255,255,255,0.03); }
+
+  /* ── Timeline ── */
+  .timeline { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .tl-item { display: flex; gap: 14px; align-items: flex-start; }
+  .tl-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e90ff, #0052a3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .tl-body h4 { font-size: 13px; font-weight: 700; color: #c8dff5; margin-bottom: 3px; }
+  .tl-body p  { font-size: 12px; color: #7a9ab8; line-height: 1.55; }
+
+  /* ── Highlight box ── */
+  .highlight {
+    background: linear-gradient(135deg, rgba(52,152,219,0.12), rgba(52,152,219,0.05));
+    border: 1px solid rgba(52,152,219,0.35);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: #a0c8e8;
+    line-height: 1.65;
+  }
+  .highlight strong { color: #3498db; }
+
+  /* ── Full-width list columns ── */
+  .split-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0 30px; }
+
+  /* screenshot placeholder */
+  .screen {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(52,152,219,0.25);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #4a7090;
+    text-align: center;
+    padding: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="slide-badge" id="slide-badge">1 / 18</div>
+
+<div class="slideshow" id="slideshow">
+
+  <!-- ══════════════════ SLIDE 1 – TITLE ══════════════════ -->
+  <div class="slide slide-title active" id="slide-1">
+    <div class="inst-logo">AU</div>
+    <div class="dept">Department of Information Technology and Computer Applications</div>
+    <div class="univ">Andhra University College of Engineering (A) &bull; Andhra University, Visakhapatnam</div>
+    <div class="divider"></div>
+    <div class="subtitle">Final Year Project Presentation &bull; B.Tech Information Technology &bull; 2022&ndash;2026</div>
+    <h1>Multithreaded Virtual Memory Simulator<br>with Concurrency</h1>
+    <div class="divider"></div>
+    <div class="team-grid">
+      <div class="member">
+        <div class="name">B. Venkata Bala Sai Naga Sowmya</div>
+        <div class="regd">Regd. No: 322107311008</div>
+      </div>
+      <div class="member">
+        <div class="name">Karri Jagan Mohan</div>
+        <div class="regd">Regd. No: 322107311018</div>
+      </div>
+      <div class="member">
+        <div class="name">Koreddy Veerraju</div>
+        <div class="regd">Regd. No: 322107311021</div>
+      </div>
+    </div>
+    <div class="guide-row">
+      <div>Project Guide: <span>Dr. A. Gautami Latha</span> &mdash; Professor</div>
+      <div>Head of the Department: <span>Prof. D. Lalitha Bhaskari</span></div>
+    </div>
+    <div class="year">Academic Year 2022&ndash;2026 &bull; Partial fulfilment for the award of B.Tech (IT)</div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 2 – AGENDA ══════════════════ -->
+  <div class="slide slide-content" id="slide-2">
+    <div class="slide-header">
+      <div class="icon">&#128203;</div>
+      <h2>Presentation Agenda</h2>
+      <span class="tag">Overview</span>
+    </div>
+    <div class="three-col">
+      <div class="card blue">
+        <h3>Part 1 &mdash; Foundation</h3>
+        <ul class="bullets">
+          <li>Introduction &amp; Motivation</li>
+          <li>Problem Statement</li>
+          <li>Objectives</li>
+          <li>Literature Survey</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h3>Part 2 &mdash; Design &amp; Implementation</h3>
+        <ul class="bullets">
+          <li>System Architecture</li>
+          <li>DemandPagingGUI Simulator</li>
+          <li>MultiThreadGUI Simulator</li>
+          <li>Simulation Dashboard</li>
+          <li>AI Research Copilot</li>
+        </ul>
+      </div>
+      <div class="card amber">
+        <h3>Part 3 &mdash; Results &amp; Closure</h3>
+        <ul class="bullets">
+          <li>Algorithms Implemented</li>
+          <li>Results &amp; Screenshots</li>
+          <li>Testing &amp; Validation</li>
+          <li>Conclusion &amp; Future Work</li>
+          <li>References</li>
+        </ul>
+      </div>
+    </div>
+    <div class="highlight" style="margin-top:18px">
+      <strong>Project Scope:</strong> An interactive, AI-enhanced educational suite covering virtual memory management, thread scheduling, synchronization primitives, and deadlock detection built with Java Swing.
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 3 – INTRODUCTION ══════════════════ -->
+  <div class="slide slide-alt" id="slide-3">
+    <div class="slide-header">
+      <div class="icon">&#128161;</div>
+      <h2>Introduction &amp; Motivation</h2>
+      <span class="tag">Background</span>
+    </div>
+    <div class="two-col">
+      <div class="content-flex">
+        <div class="card blue">
+          <div class="section-label">Context</div>
+          <ul class="bullets">
+            <li><strong>Operating Systems</strong> are a cornerstone of computer science education.</li>
+            <li>Concepts like <strong>demand paging</strong>, <strong>thread scheduling</strong>, and <strong>deadlocks</strong> are abstract and hard to grasp from textbooks alone.</li>
+            <li>Existing simulation tools are either too simplistic or require advanced setup.</li>
+            <li>There is a need for an <strong>integrated, visual, interactive</strong> learning platform.</li>
+          </ul>
+        </div>
+        <div class="card green">
+          <div class="section-label">Motivation</div>
+          <ul class="bullets">
+            <li>Provide a <strong>hands-on</strong> environment for OS algorithm exploration.</li>
+            <li>Bridge the gap between <strong>theory and practice</strong> through real-time visualization.</li>
+            <li>Leverage <strong>AI assistance</strong> for intelligent dataset generation and analysis.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="content-flex">
+        <div class="card amber">
+          <div class="section-label">Key Challenges Addressed</div>
+          <ul class="bullets">
+            <li>Visualizing <strong>page replacement</strong> frame transitions step by step</li>
+            <li>Simulating <strong>concurrent thread execution</strong> safely in a single-machine environment</li>
+            <li>Demonstrating <strong>race conditions, deadlocks, and priority inversion</strong></li>
+            <li>Comparing multiple algorithms on identical workloads simultaneously</li>
+            <li>Generating intelligent <strong>benchmark datasets</strong> using generative AI</li>
+          </ul>
+        </div>
+        <div class="highlight">
+          <strong>Vision:</strong> A single unified platform where students progress from basic page faults all the way to concurrent deadlock scenarios, supported by AI-powered explanations.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 4 – PROBLEM STATEMENT ══════════════════ -->
+  <div class="slide slide-content" id="slide-4">
+    <div class="slide-header">
+      <div class="icon">&#128270;</div>
+      <h2>Problem Statement &amp; Objectives</h2>
+      <span class="tag">Scope</span>
+    </div>
+    <div class="two-col">
+      <div class="card red">
+        <div class="section-label">Problem Statement</div>
+        <p style="margin-bottom:10px;font-size:13px;color:#c8a0a0;">
+          Students learning Operating Systems lack an integrated tool that simultaneously demonstrates <strong style="color:#f5927a;">virtual memory management</strong>, <strong style="color:#f5927a;">multithreading</strong>, and <strong style="color:#f5927a;">synchronization</strong> with visual, real-time feedback. Existing solutions address only individual topics, creating a fragmented learning experience.
+        </p>
+        <div class="pill-row">
+          <span class="pill pill-red">No Unified Tool</span>
+          <span class="pill pill-red">Abstract Concepts</span>
+          <span class="pill pill-red">No AI Analysis</span>
+        </div>
+      </div>
+      <div class="card green">
+        <div class="section-label">Project Objectives</div>
+        <ul class="bullets">
+          <li>Implement <strong>4 page replacement algorithms</strong> with interactive visualization</li>
+          <li>Simulate <strong>3-8 concurrent threads</strong> competing for shared memory</li>
+          <li>Support <strong>FCFS, Round-Robin, and Priority</strong> thread scheduling</li>
+          <li>Demonstrate <strong>Mutex and Semaphore</strong> synchronization mechanisms</li>
+          <li>Provide automatic <strong>deadlock detection</strong> via RAG cycle detection</li>
+          <li>Integrate <strong>Gemini AI</strong> for intelligent analysis and dataset generation</li>
+          <li>Build a <strong>unified dashboard</strong> for experiment tracking and comparison</li>
+        </ul>
+      </div>
+    </div>
+    <div class="stat-grid" style="margin-top:18px">
+      <div class="stat-box"><div class="num">4</div><div class="lbl">Page Replacement Algorithms</div></div>
+      <div class="stat-box"><div class="num">3</div><div class="lbl">Scheduling Algorithms</div></div>
+      <div class="stat-box"><div class="num">2</div><div class="lbl">Sync Mechanisms</div></div>
+      <div class="stat-box"><div class="num">3</div><div class="lbl">Simulation Tools</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 5 – LITERATURE SURVEY ══════════════════ -->
+  <div class="slide slide-alt" id="slide-5">
+    <div class="slide-header">
+      <div class="icon">&#128218;</div>
+      <h2>Literature Survey</h2>
+      <span class="tag">Related Work</span>
+    </div>
+    <div class="content-flex" style="gap:12px">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Work / Reference</th><th>Contribution</th><th>Limitation</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Silberschatz et al. &mdash; <em>OS Concepts</em> (2018)</td><td>Formal definitions of FIFO, LRU, OPT algorithms; theoretical Belady's Anomaly proof</td><td>No interactive simulation tool; purely theoretical</td></tr>
+          <tr><td>2</td><td>Tanenbaum &mdash; <em>Modern OS</em> (2015)</td><td>Deadlock detection via resource allocation graphs; synchronization primitives</td><td>Text-based examples; no visual feedback</td></tr>
+          <tr><td>3</td><td>MOSS (Memory-access OS Simulator)</td><td>Educational simulator covering paging and scheduling</td><td>Outdated UI; no AI integration; separate tools for each topic</td></tr>
+          <tr><td>4</td><td>OS/161 (Harvard)</td><td>Full kernel implementation for OS labs</td><td>Steep learning curve; requires kernel-level setup</td></tr>
+          <tr><td>5</td><td>VisuAlgo (NUS)</td><td>Algorithm visualization platform</td><td>Focuses on data structures; limited OS coverage</td></tr>
+          <tr><td>6</td><td>Gemini / LLM-assisted education (2023&ndash;24)</td><td>AI-generated benchmark datasets; intelligent explanations</td><td>Not integrated into OS simulators</td></tr>
+        </tbody>
+      </table>
+      <div class="highlight">
+        <strong>Research Gap:</strong> No existing tool unifies page replacement simulation, multithreaded scheduling, synchronization visualization, and AI-powered analysis into a single interactive platform.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 6 – SYSTEM ARCHITECTURE ══════════════════ -->
+  <div class="slide slide-content" id="slide-6">
+    <div class="slide-header">
+      <div class="icon">&#127959;</div>
+      <h2>System Architecture</h2>
+      <span class="tag">Design</span>
+    </div>
+    <div class="two-col">
+      <div class="card blue">
+        <div class="section-label">Component Hierarchy</div>
+        <div class="diagram">
+SimulationDashboard (Hub)
+  &#9500;&#9472; DemandPagingGUI
+  &#9500;&#9472; MultiThreadGUI
+  &#9500;&#9472; PageReplacementAnalyzer
+  &#9500;&#9472; CpuSchedulingAnalyzer
+  &#9492;&#9472; AI Research Copilot
+
+Core Engines
+  &#9500;&#9472; MultiThreadSimulator
+  &#9500;&#9472; ThreadScheduler
+  &#9500;&#9472; LockResource
+  &#9492;&#9472; DeadlockDetector
+
+AI Layer
+  &#9500;&#9472; AIResearchAssistant
+  &#9500;&#9472; GeminiAIClient
+  &#9492;&#9472; AIConfigManager
+        </div>
+      </div>
+      <div class="content-flex">
+        <div class="card green">
+          <div class="section-label">Architecture Patterns</div>
+          <ul class="bullets">
+            <li><strong>MVC Pattern</strong> &mdash; Models (ProcessThread, FrameEntry), Views (Swing), Controllers (Simulators)</li>
+            <li><strong>Strategy Pattern</strong> &mdash; Interchangeable page replacement and scheduling algorithms</li>
+            <li><strong>Observer Pattern</strong> &mdash; Event-driven GUI updates via Swing Timer</li>
+          </ul>
+        </div>
+        <div class="card amber">
+          <div class="section-label">Technology Stack</div>
+          <div class="pill-row">
+            <span class="pill pill-blue">Java JDK 11+</span>
+            <span class="pill pill-green">Java Swing GUI</span>
+            <span class="pill pill-amber">Gemini 3 Flash API</span>
+            <span class="pill pill-teal">In-Memory Storage</span>
+          </div>
+          <ul class="bullets" style="margin-top:10px">
+            <li>Thread-safe UI updates via <strong>SwingUtilities.invokeLater()</strong></li>
+            <li>Simulation timer at <strong>500ms/step</strong> for smooth animation</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 7 – DEMAND PAGING GUI ══════════════════ -->
+  <div class="slide slide-alt" id="slide-7">
+    <div class="slide-header">
+      <div class="icon">&#128190;</div>
+      <h2>DemandPagingGUI &mdash; Single-Thread Simulator</h2>
+      <span class="tag">Module 1</span>
+    </div>
+    <div class="two-col">
+      <div class="content-flex">
+        <div class="card blue">
+          <div class="section-label">Features</div>
+          <ul class="bullets">
+            <li><strong>Step-by-Step Mode:</strong> Advance one page reference at a time</li>
+            <li><strong>Auto-Play Mode:</strong> Continuous execution with pause/resume</li>
+            <li><strong>Visual Frames:</strong> Color-coded (green=hit, red=fault)</li>
+            <li><strong>Eviction Display:</strong> Shows which page was replaced</li>
+            <li><strong>Real-time Stats:</strong> Hits, faults, hit ratio, step counter</li>
+            <li><strong>Algorithm Selector:</strong> FIFO, LRU, MRU, OPT dropdown</li>
+          </ul>
+        </div>
+        <div class="card green">
+          <div class="section-label">Comparison Tool</div>
+          <ul class="bullets">
+            <li>Bar chart comparing all 4 algorithms on the same reference string</li>
+            <li>Bars sorted by fault count (best to worst)</li>
+            <li>Final summary popup with hit ratio and miss ratio</li>
+          </ul>
+        </div>
+      </div>
+      <div class="content-flex">
+        <div class="card amber">
+          <div class="section-label">Default Example &amp; Output</div>
+          <div class="diagram" style="font-size:11px">
+Reference: 7 0 1 2 0 3 0 4 2 3 0 3 2
+Frames: 3  |  Algorithm: FIFO
+
+Step  Page  Frames      Event
+ 1     7    [7, -, -]   FAULT
+ 2     0    [7, 0, -]   FAULT
+ 3     1    [7, 0, 1]   FAULT
+ 4     2    [2, 0, 1]   FAULT  evict:7
+ 5     0    [2, 0, 1]   HIT
+ 6     3    [2, 3, 1]   FAULT  evict:0
+ 7     0    [2, 3, 0]   FAULT  evict:1
+...
+Faults: 9  |  Hits: 4  |  Hit Ratio: 30.77%
+          </div>
+        </div>
+        <div class="highlight">
+          <strong>Belady's Anomaly Demo:</strong> FIFO with 3 frames = 9 faults; FIFO with 4 frames = 10 faults &mdash; more frames, more faults!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 8 – PAGE REPLACEMENT ALGORITHMS ══════════════════ -->
+  <div class="slide slide-content" id="slide-8">
+    <div class="slide-header">
+      <div class="icon">&#128260;</div>
+      <h2>Page Replacement Algorithms</h2>
+      <span class="tag">Core Algorithms</span>
+    </div>
+    <div class="two-col" style="flex:1">
+      <div class="content-flex">
+        <div class="card blue">
+          <h3>FIFO &mdash; First In First Out</h3>
+          <p>Evicts the page that arrived first in memory. Implemented using a FIFO queue. Simple but suffers from <strong>Belady's Anomaly</strong>. Best for sequential access patterns.</p>
+        </div>
+        <div class="card green">
+          <h3>LRU &mdash; Least Recently Used</h3>
+          <p>Evicts the page not accessed for the longest time. Uses list reordering on each access. <strong>Industry standard</strong> for general workloads. No Belady's Anomaly. Excellent temporal locality support.</p>
+        </div>
+      </div>
+      <div class="content-flex">
+        <div class="card amber">
+          <h3>MRU &mdash; Most Recently Used</h3>
+          <p>Evicts the most recently used page &mdash; counter-intuitive but effective for <strong>cyclic scan patterns</strong>. Educational comparison point showing locality assumptions can be reversed.</p>
+        </div>
+        <div class="card teal">
+          <h3>OPT &mdash; Optimal Algorithm</h3>
+          <p>Evicts the page that will not be used for the longest time in the future. <strong>Theoretical best</strong> &mdash; requires future knowledge so not implementable in practice. Serves as the performance <strong>upper bound</strong> for comparison.</p>
+        </div>
+      </div>
+    </div>
+    <div class="highlight" style="margin-top:14px">
+      <strong>Comparative Performance</strong> (Reference: 7 0 1 2 0 3 0 4 2 3 0 3 2, 3 Frames):&nbsp;
+      OPT = 6 faults &bull; LRU = 7 faults &bull; MRU = 9 faults &bull; FIFO = 9 faults
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 9 – MULTITHREAD GUI ══════════════════ -->
+  <div class="slide slide-alt" id="slide-9">
+    <div class="slide-header">
+      <div class="icon">&#9881;</div>
+      <h2>MultiThreadGUI &mdash; Concurrency Simulator</h2>
+      <span class="tag">Module 2</span>
+    </div>
+    <div class="two-col">
+      <div class="content-flex">
+        <div class="card blue">
+          <div class="section-label">Configuration Options</div>
+          <ul class="bullets">
+            <li><strong>3&ndash;8 threads</strong> with individual reference strings and priorities (1&ndash;10)</li>
+            <li>Scheduling: <strong>FCFS, Round-Robin</strong> (quantum 1&ndash;10), <strong>Priority</strong></li>
+            <li>Sync: <strong>None, Mutex</strong> (exclusive), <strong>Semaphore</strong> (1&ndash;5 permits)</li>
+            <li>Page replacement: <strong>FIFO, LRU, MRU, OPT</strong></li>
+            <li>Memory frames: <strong>2&ndash;10</strong> shared across all threads</li>
+          </ul>
+        </div>
+        <div class="card green">
+          <div class="section-label">Real-Time Visualization</div>
+          <ul class="bullets">
+            <li><strong>Shared frame display</strong> with color-coded thread ownership</li>
+            <li><strong>Thread state panel:</strong> Running / Ready / Waiting / Blocked / Completed</li>
+            <li><strong>Lock status panel:</strong> locked/unlocked with waiting queue</li>
+            <li><strong>Execution log:</strong> timestamped event timeline</li>
+            <li><strong>Progress bar</strong> + step counter</li>
+          </ul>
+        </div>
+      </div>
+      <div class="content-flex">
+        <div class="card amber">
+          <div class="section-label">Pre-configured Educational Scenarios</div>
+          <ul class="bullets">
+            <li><strong>Race Condition Demo</strong> &mdash; threads access same pages without sync</li>
+            <li><strong>Deadlock Scenario</strong> &mdash; circular mutex wait between 3 threads</li>
+            <li><strong>Priority Inversion</strong> &mdash; high-priority blocked by low-priority lock holder</li>
+            <li><strong>Starvation Example</strong> &mdash; low-priority thread never executes</li>
+            <li><strong>Thrashing Simulation</strong> &mdash; 6 threads, 3 frames, excessive faults</li>
+          </ul>
+        </div>
+        <div class="card teal">
+          <div class="section-label">Statistics Tab</div>
+          <ul class="bullets">
+            <li>Global: context switches, total faults/hits, global hit ratio</li>
+            <li>Per-thread: individual faults, hits, context switches, state</li>
+            <li>Lock: acquisition counts per lock</li>
+            <li>Deadlock: involved threads, circular chain display</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 10 – THREAD SCHEDULING ══════════════════ -->
+  <div class="slide slide-content" id="slide-10">
+    <div class="slide-header">
+      <div class="icon">&#128337;</div>
+      <h2>Thread Scheduling Algorithms</h2>
+      <span class="tag">Scheduling</span>
+    </div>
+    <div class="three-col">
+      <div class="card blue">
+        <h3>FCFS</h3>
+        <div class="section-label">First-Come-First-Served</div>
+        <ul class="bullets">
+          <li>Non-preemptive simple FIFO queue</li>
+          <li>Threads execute in arrival order</li>
+          <li>Low overhead, easy to implement</li>
+          <li>Suffers from <strong>Convoy Effect</strong></li>
+          <li>Best for batch processing workloads</li>
+        </ul>
+        <div class="pill-row" style="margin-top:10px">
+          <span class="pill pill-blue">Non-preemptive</span>
+        </div>
+      </div>
+      <div class="card green">
+        <h3>Round-Robin</h3>
+        <div class="section-label">Time-Sliced Execution</div>
+        <ul class="bullets">
+          <li>Preemptive with configurable <strong>time quantum (1&ndash;10)</strong></li>
+          <li>Fair CPU allocation across all threads</li>
+          <li>Good average response time</li>
+          <li>Context switches increase with smaller quantum</li>
+          <li>Ideal for <strong>time-sharing systems</strong></li>
+        </ul>
+        <div class="pill-row" style="margin-top:10px">
+          <span class="pill pill-green">Preemptive</span>
+          <span class="pill pill-green">Fair</span>
+        </div>
+      </div>
+      <div class="card amber">
+        <h3>Priority-Based</h3>
+        <div class="section-label">Highest Priority First</div>
+        <ul class="bullets">
+          <li>Selects thread with <strong>highest priority</strong> from ready queue</li>
+          <li>Flexible, supports real-time scenarios</li>
+          <li>Can cause <strong>starvation</strong> of low-priority threads</li>
+          <li>Demonstrates <strong>priority inversion</strong> with Mutex</li>
+          <li>Ideal for <strong>real-time systems</strong></li>
+        </ul>
+        <div class="pill-row" style="margin-top:10px">
+          <span class="pill pill-amber">Priority-driven</span>
+          <span class="pill pill-red">Starvation Risk</span>
+        </div>
+      </div>
+    </div>
+    <div class="highlight" style="margin-top:16px">
+      <strong>Key Insight:</strong> Round-Robin with a quantum equal to the total burst time degenerates into FCFS. Smaller quantum improves fairness but increases context-switch overhead, demonstrating the fundamental trade-off in time-sharing design.
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 11 – SYNCHRONIZATION ══════════════════ -->
+  <div class="slide slide-alt" id="slide-11">
+    <div class="slide-header">
+      <div class="icon">&#128274;</div>
+      <h2>Synchronization Mechanisms</h2>
+      <span class="tag">Concurrency</span>
+    </div>
+    <div class="two-col">
+      <div class="content-flex">
+        <div class="card blue">
+          <h3>Mutex &mdash; Mutual Exclusion</h3>
+          <ul class="bullets">
+            <li>Binary lock: only <strong>one thread</strong> holds it at a time</li>
+            <li>Thread blocked if lock is held; added to waiting queue</li>
+            <li>On release, first waiting thread is automatically granted access</li>
+            <li>Demonstrates <strong>exclusive access</strong> to shared memory regions</li>
+            <li>Can create deadlock when multiple mutexes are used</li>
+          </ul>
+          <div class="diagram" style="margin-top:10px;font-size:11px">
+T1 acquires Mutex-A  &#8594; T2 waits
+T2 acquires Mutex-B  &#8594; T1 waits for Mutex-B
+          &#8658; DEADLOCK: Circular wait detected
+          </div>
+        </div>
+        <div class="card green">
+          <h3>Semaphore &mdash; Counting Semaphore</h3>
+          <ul class="bullets">
+            <li>Configurable permits (<strong>1&ndash;5</strong>); multiple threads can proceed simultaneously</li>
+            <li>Permit decremented on acquire, incremented on release</li>
+            <li>Waiting queue used when all permits exhausted</li>
+            <li>Models <strong>resource pools</strong> (e.g., limited DB connections)</li>
+            <li>Reduces contention vs Mutex for parallel workloads</li>
+          </ul>
+          <div class="diagram" style="margin-top:10px;font-size:11px">
+Semaphore(2): T1 acquires &#8594; permits=1
+             T2 acquires &#8594; permits=0
+             T3 waits    &#8594; blocked
+             T1 releases &#8594; T3 unblocked
+          </div>
+        </div>
+      </div>
+      <div class="content-flex">
+        <div class="card amber">
+          <div class="section-label">Thread States &amp; Transitions</div>
+          <div class="diagram" style="font-size:11.5px">
+NEW &#8594; READY &#8594; RUNNING &#8594; COMPLETED
+              &#8597;              &#8597;
+           BLOCKED &#8592;&#8592; lock wait
+           WAITING &#8592;&#8592; resource unavailable
+          </div>
+        </div>
+        <div class="card teal">
+          <div class="section-label">Race Condition Demo (No Sync)</div>
+          <p>When synchronization is set to <strong>None</strong>, multiple threads access the same pages without coordination. The simulator shows interleaved accesses, demonstrating how unsynchronized concurrent access leads to unpredictable memory states &mdash; the classic <strong>race condition</strong> problem.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 12 – DEADLOCK DETECTION ══════════════════ -->
+  <div class="slide slide-content" id="slide-12">
+    <div class="slide-header">
+      <div class="icon">&#128683;</div>
+      <h2>Deadlock Detection</h2>
+      <span class="tag">Safety</span>
+    </div>
+    <div class="two-col">
+      <div class="content-flex">
+        <div class="card red">
+          <div class="section-label">Deadlock Conditions (Coffman, 1971)</div>
+          <ul class="bullets">
+            <li><strong>Mutual Exclusion:</strong> Resources held exclusively</li>
+            <li><strong>Hold and Wait:</strong> Thread holds one resource while waiting for another</li>
+            <li><strong>No Preemption:</strong> Resources not forcibly taken</li>
+            <li><strong>Circular Wait:</strong> T1 waits for T2, T2 waits for T3, T3 waits for T1</li>
+          </ul>
+        </div>
+        <div class="card blue">
+          <div class="section-label">Detection Algorithm</div>
+          <ul class="bullets">
+            <li>Builds a <strong>Resource Allocation Graph (RAG)</strong> at each simulation step</li>
+            <li>Nodes: threads and lock resources; Edges: holds / waiting-for</li>
+            <li><strong>Depth-First Search (DFS)</strong> detects cycle in the graph</li>
+            <li>All threads in the cycle are flagged as deadlocked</li>
+            <li>Simulation halts with visual alert and thread list</li>
+          </ul>
+        </div>
+      </div>
+      <div class="content-flex">
+        <div class="card amber">
+          <div class="section-label">RAG Example &mdash; Deadlock Scenario</div>
+          <div class="diagram" style="font-size:11.5px">
+T1 holds Mutex-A &#8594; waits for Mutex-B
+T2 holds Mutex-B &#8594; waits for Mutex-A
+T3 holds Mutex-B &#8594; waits for Mutex-A
+
+DFS traversal:
+  Visit T1 &#8594; follow Mutex-B &#8594; T2
+  Visit T2 &#8594; follow Mutex-A &#8594; T1
+  CYCLE DETECTED: [T1, T2]
+  &#8658; DEADLOCK REPORTED
+          </div>
+        </div>
+        <div class="highlight">
+          <strong>Educational Value:</strong> Students observe the exact moment deadlock occurs, see which threads are frozen, and understand how to prevent it by enforcing a consistent lock-ordering protocol.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 13 – SIMULATION DASHBOARD ══════════════════ -->
+  <div class="slide slide-alt" id="slide-13">
+    <div class="slide-header">
+      <div class="icon">&#128202;</div>
+      <h2>Integrated Simulation Dashboard</h2>
+      <span class="tag">Module 3</span>
+    </div>
+    <div class="three-col">
+      <div class="card blue">
+        <h3>Tab 1: Launcher</h3>
+        <ul class="bullets">
+          <li>One-click launch of both standalone simulators</li>
+          <li>AI mode toggle: <strong>Concise / Research</strong></li>
+          <li>Difficulty selector for AI generation</li>
+          <li>Gemini API key management</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h3>Tab 2: Simulation Manager</h3>
+        <ul class="bullets">
+          <li>Save experiment runs with name, category, algorithm, and summary</li>
+          <li>In-memory record table with timestamps</li>
+          <li>Clear / reset history</li>
+          <li>Tracks both page and CPU experiments</li>
+        </ul>
+      </div>
+      <div class="card amber">
+        <h3>Tab 3: Page Replacement Analysis</h3>
+        <ul class="bullets">
+          <li>Run all 4 algorithms on same reference string</li>
+          <li>Step-by-step frame state table</li>
+          <li>Line graph of fault counts</li>
+          <li>AI generate reference strings</li>
+          <li>AI explain and recommend best algorithm</li>
+        </ul>
+      </div>
+      <div class="card teal">
+        <h3>Tab 4: CPU Scheduling Analysis</h3>
+        <ul class="bullets">
+          <li>CSV process input (ID, Arrival, Burst, Priority)</li>
+          <li>Compare FCFS, Priority, Round-Robin</li>
+          <li>Gantt chart timelines per algorithm</li>
+          <li>Avg waiting, turnaround, throughput metrics</li>
+          <li>AI generate process datasets</li>
+        </ul>
+      </div>
+      <div class="card red">
+        <h3>Tab 5: AI Research Copilot</h3>
+        <ul class="bullets">
+          <li>Centralized AI output view</li>
+          <li>Full conversation history</li>
+          <li>IEEE-friendly structured reports</li>
+          <li>Anomaly detection output</li>
+        </ul>
+      </div>
+      <div class="highlight" style="align-self:center">
+        <strong>Unified Learning Path:</strong> Start simple &#8594; compare algorithms &#8594; multithreaded scenarios &#8594; AI-powered research reports
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 14 – AI INTEGRATION ══════════════════ -->
+  <div class="slide slide-content" id="slide-14">
+    <div class="slide-header">
+      <div class="icon">&#129504;</div>
+      <h2>AI Research Copilot &mdash; Gemini Integration</h2>
+      <span class="tag">AI Features</span>
+    </div>
+    <div class="two-col">
+      <div class="content-flex">
+        <div class="card blue">
+          <div class="section-label">Dataset Generation</div>
+          <ul class="bullets">
+            <li><strong>Reference String Generation:</strong> Difficulty-adaptive page access sequences (Easy / Medium / Hard)</li>
+            <li><strong>CPU Process Generation:</strong> Realistic PID, Arrival, Burst, Priority datasets</li>
+            <li>Outputs immediately populate the simulation input fields</li>
+            <li>Ensures reproducible, well-structured benchmarks</li>
+          </ul>
+        </div>
+        <div class="card green">
+          <div class="section-label">Explanation &amp; Recommendation</div>
+          <ul class="bullets">
+            <li>Analyze page replacement results with <strong>locality reasoning</strong></li>
+            <li>Recommend best algorithm with evidence from simulation data</li>
+            <li>Explain CPU workload characteristics and algorithm suitability</li>
+            <li>Assess quantum impact for Round-Robin scheduling</li>
+          </ul>
+        </div>
+      </div>
+      <div class="content-flex">
+        <div class="card amber">
+          <div class="section-label">Anomaly Detection</div>
+          <ul class="bullets">
+            <li>Detects <strong>thrashing</strong> risk from fault rates</li>
+            <li>Identifies <strong>starvation</strong> patterns in scheduling data</li>
+            <li>Flags <strong>deadlock risk</strong> from lock contention patterns</li>
+            <li>Provides confidence levels and mitigation strategies</li>
+          </ul>
+        </div>
+        <div class="card teal">
+          <div class="section-label">Output Modes</div>
+          <div class="pill-row" style="margin-bottom:10px">
+            <span class="pill pill-blue">Concise Mode</span>
+            <span class="pill pill-green">Research Mode</span>
+          </div>
+          <p><strong>Concise:</strong> Quick bullet-point insights with direct recommendations.</p>
+          <p style="margin-top:6px"><strong>Research (IEEE):</strong> Objective &bull; Findings &bull; Evidence &bull; Threats-to-Validity &bull; Recommendations</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 15 – RESULTS ══════════════════ -->
+  <div class="slide slide-alt" id="slide-15">
+    <div class="slide-header">
+      <div class="icon">&#128200;</div>
+      <h2>Results &amp; Performance Analysis</h2>
+      <span class="tag">Evaluation</span>
+    </div>
+    <div class="content-flex">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="num">4</div><div class="lbl">Page Replacement Algos</div></div>
+        <div class="stat-box"><div class="num">3</div><div class="lbl">CPU Scheduling Algos</div></div>
+        <div class="stat-box"><div class="num">8</div><div class="lbl">Max Concurrent Threads</div></div>
+        <div class="stat-box"><div class="num">5</div><div class="lbl">Pre-config Scenarios</div></div>
+      </div>
+      <div class="two-col" style="flex:1">
+        <div>
+          <table>
+            <thead><tr><th>Algorithm</th><th>Faults (3 frames)</th><th>Hit Ratio</th><th>Complexity</th></tr></thead>
+            <tbody>
+              <tr><td>OPT</td><td>6</td><td>53.8%</td><td>O(n)</td></tr>
+              <tr><td>LRU</td><td>7</td><td>46.2%</td><td>O(n)</td></tr>
+              <tr><td>FIFO</td><td>9</td><td>30.8%</td><td>O(1)</td></tr>
+              <tr><td>MRU</td><td>9</td><td>30.8%</td><td>O(1)</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:10px;font-size:11px;color:#5a8ab0;">Reference: 7 0 1 2 0 3 0 4 2 3 0 3 2</div>
+        </div>
+        <div>
+          <table>
+            <thead><tr><th>CPU Algo</th><th>Avg Wait (P1-P4)</th><th>Avg TAT</th><th>Throughput</th></tr></thead>
+            <tbody>
+              <tr><td>FCFS</td><td>5.25</td><td>11.25</td><td>0.200</td></tr>
+              <tr><td>Priority</td><td>4.50</td><td>10.50</td><td>0.210</td></tr>
+              <tr><td>Round-Robin (Q=3)</td><td>6.75</td><td>12.75</td><td>0.195</td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:10px;font-size:11px;color:#5a8ab0;">Processes: P1(0,6,2), P2(1,4,4), P3(2,8,1), P4(3,5,3)</div>
+        </div>
+      </div>
+      <div class="highlight">
+        <strong>Key Finding:</strong> LRU closely approximates OPT (only 1 extra fault) while FIFO shows Belady's Anomaly. Priority scheduling yields lowest average wait time for heterogeneous workloads. Thrashing with 6 threads / 3 frames produces &gt;80% fault rate.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 16 – TESTING ══════════════════ -->
+  <div class="slide slide-content" id="slide-16">
+    <div class="slide-header">
+      <div class="icon">&#9989;</div>
+      <h2>Testing &amp; Validation</h2>
+      <span class="tag">Quality</span>
+    </div>
+    <div class="two-col">
+      <div class="content-flex">
+        <div class="card blue">
+          <div class="section-label">Functional Testing</div>
+          <ul class="bullets">
+            <li><strong>Unit Tests:</strong> Each algorithm verified against hand-computed reference solutions</li>
+            <li><strong>Belady's Anomaly:</strong> Verified FIFO 3-frame vs 4-frame on reference "1 2 3 4 1 2 5 1 2 3 4 5" (9 vs 10 faults)</li>
+            <li><strong>OPT Baseline:</strong> Confirmed optimal always &le; FIFO/LRU fault counts</li>
+            <li><strong>Deadlock Test:</strong> Three-thread circular mutex wait correctly detected</li>
+          </ul>
+        </div>
+        <div class="card green">
+          <div class="section-label">Scenario-Based Testing</div>
+          <ul class="bullets">
+            <li>All 5 pre-configured scenarios tested for correct behavior</li>
+            <li>Starvation scenario: priority-1 thread confirmed unable to execute with 3 higher-priority threads</li>
+            <li>Thrashing scenario: fault rate &gt;80% confirmed with 6 threads / 3 frames</li>
+            <li>Priority inversion: high-priority thread confirmed blocked by low-priority lock holder</li>
+          </ul>
+        </div>
+      </div>
+      <div class="content-flex">
+        <div class="card amber">
+          <div class="section-label">UI &amp; Usability Testing</div>
+          <ul class="bullets">
+            <li>Step-by-step and auto-play modes verified for all algorithms</li>
+            <li>Color-coding (green/red) confirmed accurate for hits/faults</li>
+            <li>Statistics panel validated against manual calculation</li>
+            <li>Simulation reset clears all state without residual data</li>
+          </ul>
+        </div>
+        <div class="card teal">
+          <div class="section-label">Edge Cases Tested</div>
+          <ul class="bullets">
+            <li>Single frame: all accesses are faults except repeats</li>
+            <li>Frame count &ge; unique pages: no evictions needed</li>
+            <li>Single-element reference string</li>
+            <li>All pages identical in reference string (100% hits after first)</li>
+            <li>AI output with empty response handled gracefully</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 17 – EDUCATIONAL VALUE ══════════════════ -->
+  <div class="slide slide-alt" id="slide-17">
+    <div class="slide-header">
+      <div class="icon">&#127891;</div>
+      <h2>Educational Value &amp; Learning Outcomes</h2>
+      <span class="tag">Impact</span>
+    </div>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot">1</div>
+        <div class="tl-body">
+          <h4>Virtual Memory Fundamentals</h4>
+          <p>Students visualize demand paging, page faults, working sets, and locality of reference through real-time frame updates and color feedback.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot">2</div>
+        <div class="tl-body">
+          <h4>Algorithm Comparison &amp; Trade-offs</h4>
+          <p>Side-by-side charts enable direct performance comparison: why LRU outperforms FIFO, why OPT is impractical, and what Belady's Anomaly reveals about FIFO's flaws.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot">3</div>
+        <div class="tl-body">
+          <h4>Concurrency &amp; Thread Lifecycle</h4>
+          <p>Students observe context switching, thread state transitions, and scheduling impacts through the animated multithread simulator with execution logs.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot">4</div>
+        <div class="tl-body">
+          <h4>Synchronization Pitfalls</h4>
+          <p>Hands-on demonstration of race conditions, deadlock, priority inversion, and starvation using the five pre-configured educational scenarios.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot">5</div>
+        <div class="tl-body">
+          <h4>AI-Assisted Research Skills</h4>
+          <p>Students learn to critically evaluate AI-generated analysis, interpret IEEE-structured reports, and use data-driven recommendations for algorithm selection.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ SLIDE 18 – CONCLUSION & FUTURE WORK ══════════════════ -->
+  <div class="slide slide-content" id="slide-18">
+    <div class="slide-header">
+      <div class="icon">&#127937;</div>
+      <h2>Conclusion &amp; Future Work</h2>
+      <span class="tag">Summary</span>
+    </div>
+    <div class="two-col">
+      <div class="content-flex">
+        <div class="card green">
+          <div class="section-label">What Was Achieved</div>
+          <ul class="bullets">
+            <li>Built a <strong>unified educational simulation suite</strong> covering four core OS topics</li>
+            <li>Implemented <strong>4 page replacement + 3 scheduling + 2 sync mechanisms</strong> with visual feedback</li>
+            <li>Developed <strong>automatic deadlock detection</strong> via RAG DFS cycle detection</li>
+            <li>Integrated <strong>Gemini 3 Flash AI</strong> for dataset generation and structured analysis</li>
+            <li>Provided <strong>5 pre-configured scenarios</strong> covering all major concurrency pitfalls</li>
+            <li>Validated all algorithms against theoretical benchmarks and edge cases</li>
+          </ul>
+        </div>
+        <div class="card blue">
+          <div class="section-label">Future Enhancements</div>
+          <ul class="bullets">
+            <li><strong>Disk Scheduling Algorithms:</strong> SSTF, SCAN, C-SCAN visualization</li>
+            <li><strong>Memory Allocation:</strong> First-fit, best-fit, worst-fit strategies</li>
+            <li><strong>Natural Language Interface:</strong> Query the simulator in plain English</li>
+            <li><strong>Export to PDF/Video:</strong> Save simulation playback for offline study</li>
+            <li><strong>Web Version:</strong> Port to browser using Java-to-JavaScript transpilation</li>
+            <li><strong>Adaptive AI Difficulty:</strong> AI adjusts benchmark complexity based on student performance</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="highlight" style="margin-top:16px;text-align:center;font-size:14px;padding:18px">
+      This project delivers a <strong>comprehensive, interactive, AI-enhanced</strong> platform for learning Operating System concepts, bridging the gap between theoretical foundations and practical understanding through visual, hands-on experimentation.
+    </div>
+  </div>
+
+</div><!-- end slideshow -->
+
+<!-- Navigation -->
+<div class="nav">
+  <button id="prev-btn" onclick="changeSlide(-1)" disabled>&#8592; Prev</button>
+  <span id="slide-counter">1 / 18</span>
+  <button id="next-btn" onclick="changeSlide(1)">Next &#8594;</button>
+</div>
+<div class="kbd-hint">Arrow keys to navigate</div>
+
+<script>
+  const TOTAL = 18;
+  let current = 1;
+
+  function goTo(n) {
+    document.getElementById('slide-' + current).classList.remove('active');
+    current = Math.max(1, Math.min(TOTAL, n));
+    document.getElementById('slide-' + current).classList.add('active');
+
+    document.getElementById('slide-counter').textContent = current + ' / ' + TOTAL;
+    document.getElementById('slide-badge').textContent   = current + ' / ' + TOTAL;
+    document.getElementById('prev-btn').disabled = (current === 1);
+    document.getElementById('next-btn').disabled = (current === TOTAL);
+    document.getElementById('progress').style.width = ((current / TOTAL) * 100) + '%';
+  }
+
+  function changeSlide(dir) { goTo(current + dir); }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  changeSlide(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    changeSlide(-1);
+    if (e.key === 'Home') goTo(1);
+    if (e.key === 'End')  goTo(TOTAL);
+  });
+
+  goTo(1);
+</script>
+</body>
+</html>
